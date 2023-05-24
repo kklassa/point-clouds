@@ -50,17 +50,11 @@ def main():
 
     glfw.make_context_current(window)
 
-    # glsl_version = glGetString(GL_SHADING_LANGUAGE_VERSION)
-
-    # print(f'Supported GLSL version is: {glsl_version}')
-    # return 
-    # Compile the vertex and fragment shaders and link them into a shader program
     shader = compileProgram(
         compileShader(vertex_shader, GL_VERTEX_SHADER),
         compileShader(fragment_shader, GL_FRAGMENT_SHADER)
     )
 
-    # Three points of a triangle in normalized device coordinates
     points = [
         -0.5, -0.5, 0.0,
          0.5, -0.5, 0.0,
@@ -70,6 +64,8 @@ def main():
     vao = create_vao(points)
 
     glUseProgram(shader)
+
+    glPointSize(4)
 
     # Loop until the user closes the window
     while not glfw.window_should_close(window):
