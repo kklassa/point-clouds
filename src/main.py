@@ -74,10 +74,10 @@ def main():
 
     glPointSize(4)
 
-    transform = np.array([1.0, 0.0, 0.0, 0.0,
-                            0.0, 1.0, 0.0, 0.0,
-                            0.0, 0.0, 1.0, 0.0,
-                            0.0, -0.5, 0.0, 1.0], dtype=np.float32)
+    transform = np.array([[1.0, 0.0, 0.0, 0.0],
+                        [0.0, 1.0, 0.0, 0.0],
+                        [0.0, 0.0, 1.0, 0.0],
+                        [0.0, -0.5, 0.0, 1.0]], dtype=np.float32)
 
     # Loop until the user closes the window
     while not glfw.window_should_close(window):
@@ -88,15 +88,53 @@ def main():
         glUseProgram(shader)
 
         # Handle keyboard input
-        translation_speed = 0.0001
+        translation_speed = 0.0005
+        rotation_speed = 0.05  # Adjust rotation speed as needed
+        rotate_x = 0.0
+        rotate_y = 0.0
+
         if glfw.get_key(window, glfw.KEY_UP) == glfw.PRESS:
-            transform[13] += translation_speed  # Move up
+            if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
+                rotate_x += rotation_speed  # Rotate up
+            else:
+                transform[3][1] += translation_speed  # Move up
+
         if glfw.get_key(window, glfw.KEY_DOWN) == glfw.PRESS:
-            transform[13] -= translation_speed  # Move down
+            if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
+                rotate_x -= rotation_speed  # Rotate down
+            else:
+                transform[3][1] -= translation_speed  # Move down
+
         if glfw.get_key(window, glfw.KEY_LEFT) == glfw.PRESS:
-            transform[12] -= translation_speed  # Move left
+            if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
+                rotate_y += rotation_speed  # Rotate left
+            else:
+                transform[3][0] -= translation_speed  # Move left
+
         if glfw.get_key(window, glfw.KEY_RIGHT) == glfw.PRESS:
-            transform[12] += translation_speed  # Move right
+            if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
+                rotate_y -= rotation_speed  # Rotate right
+            else:
+                transform[3][0] += translation_speed  # Move right
+
+        # Apply rotation
+        rotation_matrix_x = np.array([
+            [1, 0, 0, 0],
+            [0, np.cos(np.radians(rotate_x)), np.sin(np.radians(rotate_x)), 0],
+            [0, -np.sin(np.radians(rotate_x)), np.cos(np.radians(rotate_x)), 0],
+            [0, 0, 0, 1]
+        ], dtype=np.float32)
+
+        rotation_matrix_y = np.array([
+            [np.cos(np.radians(rotate_y)), 0, np.sin(np.radians(rotate_y)), 0],
+            [0, 1, 0, 0],
+            [-np.sin(np.radians(rotate_y)), 0, np.cos(np.radians(rotate_y)), 0],
+            [0, 0, 0, 1]
+        ], dtype=np.float32)
+
+        transform = np.matmul(rotation_matrix_x, transform)
+
+        transform = np.matmul(rotation_matrix_y, transform)
         
         transformLoc = glGetUniformLocation(shader, "transform")
         glUniformMatrix4fv(transformLoc, 1, GL_FALSE, transform)
