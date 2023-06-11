@@ -7,9 +7,11 @@ vertex_shader = """
 #version 410
 layout (location = 0) in vec3 aPos;
 uniform float zoom;
+uniform float pan_x;
+uniform float pan_y;
 void main()
 {
-    gl_Position = vec4(aPos.x * zoom, aPos.y * zoom, aPos.z * zoom, 1.0);
+    gl_Position = vec4((aPos.x + pan_x) * zoom, (aPos.y + pan_y) * zoom, aPos.z, 1.0);
 }
 """
 
@@ -23,11 +25,29 @@ void main()
 """
 
 zoom = 1.0
+pan = [0.0, 0.0]
+last_mouse_pos = [0, 0]
+is_middle_mouse_button_pressed = False
 
 def scroll_callback(window, x_offset, y_offset):
     global zoom
     zoom += y_offset * 0.1
     zoom = max(0.1, zoom)
+
+def cursor_position_callback(window, xpos, ypos):
+    global last_mouse_pos
+    global pan
+    if is_middle_mouse_button_pressed:
+        dx = xpos - last_mouse_pos[0]
+        dy = ypos - last_mouse_pos[1]
+        pan[0] += dx * 0.001
+        pan[1] -= dy * 0.001  # y is inverted
+    last_mouse_pos = [xpos, ypos]
+
+def mouse_button_callback(window, button, action, mods):
+    global is_middle_mouse_button_pressed
+    if button == glfw.MOUSE_BUTTON_MIDDLE:
+        is_middle_mouse_button_pressed = action == glfw.PRESS
 
 def create_vao(points):
     points = np.array(points, dtype=np.float32)
@@ -46,6 +66,7 @@ def create_vao(points):
 
 def main():
     global zoom
+    global pan
 
     # Initialize the library
     if not glfw.init():
@@ -59,6 +80,8 @@ def main():
 
     glfw.make_context_current(window)
     glfw.set_scroll_callback(window, scroll_callback)
+    glfw.set_cursor_pos_callback(window, cursor_position_callback)
+    glfw.set_mouse_button_callback(window, mouse_button_callback)
 
     shader = compileProgram(
         compileShader(vertex_shader, GL_VERTEX_SHADER),
@@ -84,6 +107,8 @@ def main():
         glClear(GL_COLOR_BUFFER_BIT)
 
         glUniform1f(glGetUniformLocation(shader, "zoom"), zoom)
+        glUniform1f(glGetUniformLocation(shader, "pan_x"), pan[0])
+        glUniform1f(glGetUniformLocation(shader, "pan_y"), pan[1])
 
         glBindVertexArray(vao)
         glDrawArrays(GL_TRIANGLES, 0, 3)
