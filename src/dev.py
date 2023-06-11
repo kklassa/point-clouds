@@ -4,69 +4,46 @@ import glfw
 import glm
 import numpy as np
 
+from utils.files import read_obj
+from utils.vao import create_vao
 
-zoom = 1.0
-pan = [0.0, 0.0]
-last_mouse_pos = [0, 0]
-is_middle_mouse_button_pressed = False
-is_right_mouse_button_pressed = False
-rotation_angle = [0.0, 0.0]  # in radians
+
+ZOOM = 1.0
+PAN = [0.0, 0.0]
+LAST_MOUSE_PAN = [0, 0]
+IS_MIDDLE_MOUSE_BUTTON_PRESSED = False
+IS_RIGHT_MOUSE_BUTTON_PRESSED = False
+ROTATION_ANGLE = [0.0, 0.0]  # in radians
 
 def scroll_callback(window, x_offset, y_offset):
-    global zoom
-    zoom += y_offset * 0.1
-    zoom = max(0.1, zoom)
+    global ZOOM
+    ZOOM += y_offset * 0.1
+    ZOOM = max(0.1, ZOOM)
 
 def cursor_position_callback(window, xpos, ypos):
-    global last_mouse_pos
-    global pan
-    dx = xpos - last_mouse_pos[0]
-    dy = ypos - last_mouse_pos[1]
-    if is_middle_mouse_button_pressed:
-        pan[0] += dx * 0.0025
-        pan[1] -= dy * 0.0025  # y is inverted
-    elif is_right_mouse_button_pressed:
-        rotation_angle[0] += dy * 0.01
-        rotation_angle[1] += dx * 0.01
-    last_mouse_pos = [xpos, ypos]
+    global LAST_MOUSE_PAN
+    global PAN
+    dx = xpos - LAST_MOUSE_PAN[0]
+    dy = ypos - LAST_MOUSE_PAN[1]
+    if IS_MIDDLE_MOUSE_BUTTON_PRESSED:
+        PAN[0] += dx * 0.0025
+        PAN[1] -= dy * 0.0025  # y is inverted
+    elif IS_RIGHT_MOUSE_BUTTON_PRESSED:
+        ROTATION_ANGLE[0] += dy * 0.01
+        ROTATION_ANGLE[1] += dx * 0.01
+    LAST_MOUSE_PAN = [xpos, ypos]
 
 def mouse_button_callback(window, button, action, mods):
-    global is_middle_mouse_button_pressed
-    global is_right_mouse_button_pressed
+    global IS_MIDDLE_MOUSE_BUTTON_PRESSED
+    global IS_RIGHT_MOUSE_BUTTON_PRESSED
     if button == glfw.MOUSE_BUTTON_MIDDLE:
-        is_middle_mouse_button_pressed = action == glfw.PRESS
+        IS_MIDDLE_MOUSE_BUTTON_PRESSED = action == glfw.PRESS
     elif button == glfw.MOUSE_BUTTON_RIGHT:
-        is_right_mouse_button_pressed = action == glfw.PRESS
-
-def create_vao(points):
-    points = np.array(points, dtype=np.float32)
-
-    vao = glGenVertexArrays(1)
-    glBindVertexArray(vao)
-
-    vbo = glGenBuffers(1)
-    glBindBuffer(GL_ARRAY_BUFFER, vbo)
-    glBufferData(GL_ARRAY_BUFFER, points.nbytes, points, GL_STATIC_DRAW)
-
-    glEnableVertexAttribArray(0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
-
-    return vao
-
-def read_obj(filename):
-    vertices = []
-
-    with open(filename, 'r') as file:
-        for line in file:
-            parts = line.split()
-            if parts[0] == 'v':  # the line describes a vertex
-                vertices.append(list(map(float, parts[1:])))
-
-    return vertices
+        IS_RIGHT_MOUSE_BUTTON_PRESSED = action == glfw.PRESS
 
 def main():
-    global zoom
-    global pan
+    global ZOOM
+    global PAN
 
     # Initialize the library
     if not glfw.init():
@@ -125,10 +102,10 @@ def main():
         glClear(GL_COLOR_BUFFER_BIT)
 
         transform = glm.mat4(1)  # Identity matrix
-        transform = glm.translate(transform, glm.vec3(pan[0], pan[1], 0.0))
-        transform = glm.scale(transform, glm.vec3(zoom, zoom, zoom))
-        transform = glm.rotate(transform, rotation_angle[0], glm.vec3(1.0, 0.0, 0.0))
-        transform = glm.rotate(transform, rotation_angle[1], glm.vec3(0.0, 1.0, 0.0))
+        transform = glm.translate(transform, glm.vec3(PAN[0], PAN[1], 0.0))
+        transform = glm.scale(transform, glm.vec3(ZOOM, ZOOM, ZOOM))
+        transform = glm.rotate(transform, ROTATION_ANGLE[0], glm.vec3(1.0, 0.0, 0.0))
+        transform = glm.rotate(transform, ROTATION_ANGLE[1], glm.vec3(0.0, 1.0, 0.0))
 
         glUniformMatrix4fv(glGetUniformLocation(shader, "transform"), 1, GL_FALSE, glm.value_ptr(transform))
 
