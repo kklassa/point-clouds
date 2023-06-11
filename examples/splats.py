@@ -36,7 +36,7 @@ fragment_shader = """
 out vec4 FragColor;
 void main()
 {
-    FragColor = vec4(1.0f, 0.0f, 0.0f, 0.7f);
+    FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 }
 """
 
@@ -54,6 +54,17 @@ def create_vao(points):
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
 
     return vao
+
+def read_obj(filename):
+    vertices = []
+
+    with open(filename, 'r') as file:
+        for line in file:
+            parts = line.split()
+            if parts[0] == 'v':  # the line describes a vertex
+                vertices.append(list(map(float, parts[1:])))
+
+    return vertices
 
 def main():
 
@@ -75,18 +86,14 @@ def main():
         compileShader(fragment_shader, GL_FRAGMENT_SHADER)
     )
 
-    points = [
-        -0.5, -0.5, 0.0,
-         0.5, -0.5, 0.0,
-         0.0,  0.5, 0.0
-    ]
+    vertices = read_obj('assets\go-gopher.obj') # You might have to tweak the slash as I am on Windows rn
 
-    vao = create_vao(points)
+    vao = create_vao(vertices)
 
     glUseProgram(shader)
 
     size_location = glGetUniformLocation(shader, "size")
-    glUniform1f(size_location, 0.1)  # Adjust size value as needed
+    glUniform1f(size_location, 0.01)  # Adjust size value as needed
 
     # glPointSize(4)
 
@@ -97,7 +104,7 @@ def main():
         glClear(GL_COLOR_BUFFER_BIT)
 
         glBindVertexArray(vao)
-        glDrawArrays(GL_POINTS, 0, 3)
+        glDrawArrays(GL_POINTS, 0, len(vertices)//3)
 
         # Swap front and back buffers
         glfw.swap_buffers(window)
