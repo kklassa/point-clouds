@@ -12,12 +12,31 @@ void main()
 }
 """
 
+geometry_shader = """
+#version 410
+layout (points) in;
+layout (triangle_strip, max_vertices = 4) out;
+uniform float size;
+void main() {
+    vec4 pos = gl_in[0].gl_Position;
+    gl_Position = pos + vec4(-size, -size, 0.0, 0.0);
+    EmitVertex();
+    gl_Position = pos + vec4( size, -size, 0.0, 0.0);
+    EmitVertex();
+    gl_Position = pos + vec4(-size,  size, 0.0, 0.0);
+    EmitVertex();
+    gl_Position = pos + vec4( size,  size, 0.0, 0.0);
+    EmitVertex();
+    EndPrimitive();
+}
+"""
+
 fragment_shader = """
 #version 410
 out vec4 FragColor;
 void main()
 {
-    FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+    FragColor = vec4(1.0f, 0.0f, 0.0f, 0.7f);
 }
 """
 
@@ -52,6 +71,7 @@ def main():
 
     shader = compileProgram(
         compileShader(vertex_shader, GL_VERTEX_SHADER),
+        compileShader(geometry_shader, GL_GEOMETRY_SHADER),
         compileShader(fragment_shader, GL_FRAGMENT_SHADER)
     )
 
@@ -65,7 +85,10 @@ def main():
 
     glUseProgram(shader)
 
-    glPointSize(4)
+    size_location = glGetUniformLocation(shader, "size")
+    glUniform1f(size_location, 0.1)  # Adjust size value as needed
+
+    # glPointSize(4)
 
     # Loop until the user closes the window
     while not glfw.window_should_close(window):
