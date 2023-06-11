@@ -32,11 +32,19 @@ void main() {
 """
 
 fragment_shader = """
-#version 410
-out vec4 FragColor;
+#version 410 core
+
+out vec4 fragColor;
+
+uniform float transparency;
+uniform float luminance;
+uniform vec3 splatColor;
+
 void main()
 {
-    FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+    vec3 finalColor = splatColor * luminance;
+    float finalAlpha = transparency;
+    fragColor = vec4(finalColor, finalAlpha);
 }
 """
 
@@ -67,7 +75,6 @@ def read_obj(filename):
     return vertices
 
 def main():
-
     # Initialize the library
     if not glfw.init():
         return
@@ -86,7 +93,7 @@ def main():
         compileShader(fragment_shader, GL_FRAGMENT_SHADER)
     )
 
-    vertices = read_obj('assets\go-gopher.obj') # You might have to tweak the slash as I am on Windows rn
+    vertices = read_obj('assets/go-gopher.obj')  # You might have to tweak the slash as I am on Windows rn
 
     vao = create_vao(vertices)
 
@@ -95,7 +102,16 @@ def main():
     size_location = glGetUniformLocation(shader, "size")
     glUniform1f(size_location, 0.01)  # Adjust size value as needed
 
-    # glPointSize(4)
+    splat_color = np.array([0.2, 0.0, 0.0], dtype=np.float32)  # Example splat color
+    transparency = 1.0  # Example transparency value
+    luminance = 0.8  # Example luminance value
+
+    glUniform3fv(glGetUniformLocation(shader, "splatColor"), 1, splat_color)
+    glUniform1f(glGetUniformLocation(shader, "transparency"), transparency)
+    glUniform1f(glGetUniformLocation(shader, "luminance"), luminance)
+
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     # Loop until the user closes the window
     while not glfw.window_should_close(window):
@@ -113,6 +129,7 @@ def main():
         glfw.poll_events()
 
     glfw.terminate()
+
 
 if __name__ == "__main__":
     main()
