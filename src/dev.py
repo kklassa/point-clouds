@@ -4,7 +4,7 @@ import glfw
 import glm
 import numpy as np
 
-from utils.files import read_obj
+from utils.files import read_obj, read_shader_file
 from utils.vao import create_vao
 
 
@@ -69,14 +69,9 @@ def main():
     glfw.set_key_callback(window, key_callback)
     glfw.set_window_size_callback(window, window_resize_callback)
 
-    with open('shaders\\base.vert', 'r') as file:
-        vertex_shader_source = file.read()
-
-    with open('shaders\circle.geom', 'r') as file:
-        geometry_shader_source = file.read()
-
-    with open('shaders\\base.frag', 'r') as file:
-        fragment_shader_source = file.read()
+    vertex_shader_source = read_shader_file('shaders\\base.vert')
+    geometry_shader_source = read_shader_file('shaders\circle.geom')
+    fragment_shader_source = read_shader_file('shaders\\base.frag')
 
     shader = compileProgram(
         compileShader(vertex_shader_source, GL_VERTEX_SHADER),
@@ -91,7 +86,7 @@ def main():
     glUseProgram(shader)
 
     size_location = glGetUniformLocation(shader, "size")
-    glUniform1f(size_location, 0.01)  # Adjust size value as needed
+    glUniform1f(size_location, 0.025)  # Adjust size value as needed
 
     splat_color = np.array([0.41, 0.87, 0.98], dtype=np.float32)  # Example splat color
     transparency = 0.5  # Example transparency value
