@@ -8,11 +8,20 @@ void main()
 }
 """
 
-fragment_shader = """
+fragment_shader1 = """
 #version 410
 out vec4 FragColor;
 void main()
 {
     FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+}
+"""
+
+fragment_shader2 = """
+#version 410
+out vec4 FragColor;
+void main()
+{
+    FragColor = vec4(0.0f, 2.0f, 0.0f, 1.0f);
 }
 """

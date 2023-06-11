@@ -1,9 +1,8 @@
 from OpenGL.GL import *
-from OpenGL.GL.shaders import compileProgram, compileShader
 import glfw
 import numpy as np
 
-from globals import vertex_shader, fragment_shader
+from globals import vertex_shader, fragment_shader1, fragment_shader2
 from object import Object
 
 
@@ -36,11 +35,6 @@ def main(translation_speed, rotation_speed, objects, window_width, window_height
 
     glfw.make_context_current(window)
 
-    shader = compileProgram(
-        compileShader(vertex_shader, GL_VERTEX_SHADER),
-        compileShader(fragment_shader, GL_FRAGMENT_SHADER)
-    )
-
     glPointSize(4)
 
     # Loop until the user closes the window
@@ -49,9 +43,9 @@ def main(translation_speed, rotation_speed, objects, window_width, window_height
         glClearColor(0.2, 0.3, 0.3, 1.0)
         glClear(GL_COLOR_BUFFER_BIT)
 
-        glUseProgram(shader)
-
         for obj in objects:
+            obj.set_shader()
+            glUseProgram(obj.shader)
             vao = create_vao(vertices=obj.vertices)
             glBindVertexArray(vao)
 
@@ -107,7 +101,7 @@ def main(translation_speed, rotation_speed, objects, window_width, window_height
 
             obj.transform_m = transform
 
-            transformLoc = glGetUniformLocation(shader, "transform")
+            transformLoc = glGetUniformLocation(obj.shader, "transform")
             glUniformMatrix4fv(transformLoc, 1, GL_FALSE, transform)
 
             glDrawArrays(GL_POINTS, 0, len(obj.vertices) // 3)
@@ -121,7 +115,7 @@ def main(translation_speed, rotation_speed, objects, window_width, window_height
     glfw.terminate()
 
 if __name__ == "__main__":
-    object1 = Object(points_path='assets/go-gopher.obj')
-    object2 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([1.0, 1.0, 0.0]))
+    object1 = Object(points_path='assets/go-gopher.obj', vertex_shader=vertex_shader, fragment_shader=fragment_shader1)
+    object2 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([1.0, 1.0, 0.0]), vertex_shader=vertex_shader, fragment_shader=fragment_shader2)
     objects = [object1, object2]
     main(translation_speed=0.05, rotation_speed=1.0, objects=objects, window_width=800, window_height=600, window_title="Hello world")
