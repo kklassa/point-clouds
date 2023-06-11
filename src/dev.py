@@ -41,6 +41,9 @@ def mouse_button_callback(window, button, action, mods):
     elif button == glfw.MOUSE_BUTTON_RIGHT:
         IS_RIGHT_MOUSE_BUTTON_PRESSED = action == glfw.PRESS
 
+def window_resize(window, width, height):
+    glViewport(0, 0, width, height)
+
 def main():
     global ZOOM
     global PAN
@@ -59,6 +62,7 @@ def main():
     glfw.set_scroll_callback(window, scroll_callback)
     glfw.set_cursor_pos_callback(window, cursor_position_callback)
     glfw.set_mouse_button_callback(window, mouse_button_callback)
+    glfw.set_window_size_callback(window, window_resize)
 
     with open('shaders\\base.vert', 'r') as file:
         vertex_shader_source = file.read()
