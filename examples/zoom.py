@@ -6,9 +6,10 @@ import numpy as np
 vertex_shader = """
 #version 410
 layout (location = 0) in vec3 aPos;
+uniform float zoom;
 void main()
 {
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    gl_Position = vec4(aPos.x * zoom, aPos.y * zoom, aPos.z * zoom, 1.0);
 }
 """
 
@@ -20,6 +21,13 @@ void main()
     FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 }
 """
+
+zoom = 1.0
+
+def scroll_callback(window, x_offset, y_offset):
+    global zoom
+    zoom += y_offset * 0.1
+    zoom = max(0.1, zoom)
 
 def create_vao(points):
     points = np.array(points, dtype=np.float32)
@@ -37,6 +45,7 @@ def create_vao(points):
     return vao
 
 def main():
+    global zoom
 
     # Initialize the library
     if not glfw.init():
@@ -49,6 +58,7 @@ def main():
         return
 
     glfw.make_context_current(window)
+    glfw.set_scroll_callback(window, scroll_callback)
 
     shader = compileProgram(
         compileShader(vertex_shader, GL_VERTEX_SHADER),
@@ -72,6 +82,8 @@ def main():
         # Render
         glClearColor(0.2, 0.3, 0.3, 1.0)
         glClear(GL_COLOR_BUFFER_BIT)
+
+        glUniform1f(glGetUniformLocation(shader, "zoom"), zoom)
 
         glBindVertexArray(vao)
         glDrawArrays(GL_TRIANGLES, 0, 3)
