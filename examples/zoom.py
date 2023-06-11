@@ -1,17 +1,16 @@
 from OpenGL.GL import *
 from OpenGL.GL.shaders import compileProgram, compileShader
 import glfw
+import glm
 import numpy as np
 
 vertex_shader = """
 #version 410
 layout (location = 0) in vec3 aPos;
-uniform float zoom;
-uniform float pan_x;
-uniform float pan_y;
+uniform mat4 transform;
 void main()
 {
-    gl_Position = vec4((aPos.x + pan_x) * zoom, (aPos.y + pan_y) * zoom, aPos.z, 1.0);
+    gl_Position = transform * vec4(aPos.x, aPos.y, aPos.z, 1.0);
 }
 """
 
@@ -28,6 +27,8 @@ zoom = 1.0
 pan = [0.0, 0.0]
 last_mouse_pos = [0, 0]
 is_middle_mouse_button_pressed = False
+is_right_mouse_button_pressed = False
+rotation_angle = [0.0, 0.0]  # in radians
 
 def scroll_callback(window, x_offset, y_offset):
     global zoom
@@ -37,17 +38,23 @@ def scroll_callback(window, x_offset, y_offset):
 def cursor_position_callback(window, xpos, ypos):
     global last_mouse_pos
     global pan
+    dx = xpos - last_mouse_pos[0]
+    dy = ypos - last_mouse_pos[1]
     if is_middle_mouse_button_pressed:
-        dx = xpos - last_mouse_pos[0]
-        dy = ypos - last_mouse_pos[1]
-        pan[0] += dx * 0.001
-        pan[1] -= dy * 0.001  # y is inverted
+        pan[0] += dx * 0.0025
+        pan[1] -= dy * 0.0025  # y is inverted
+    elif is_right_mouse_button_pressed:
+        rotation_angle[0] += dy * 0.01
+        rotation_angle[1] += dx * 0.01
     last_mouse_pos = [xpos, ypos]
 
 def mouse_button_callback(window, button, action, mods):
     global is_middle_mouse_button_pressed
+    global is_right_mouse_button_pressed
     if button == glfw.MOUSE_BUTTON_MIDDLE:
         is_middle_mouse_button_pressed = action == glfw.PRESS
+    elif button == glfw.MOUSE_BUTTON_RIGHT:
+        is_right_mouse_button_pressed = action == glfw.PRESS
 
 def create_vao(points):
     points = np.array(points, dtype=np.float32)
@@ -106,9 +113,13 @@ def main():
         glClearColor(0.2, 0.3, 0.3, 1.0)
         glClear(GL_COLOR_BUFFER_BIT)
 
-        glUniform1f(glGetUniformLocation(shader, "zoom"), zoom)
-        glUniform1f(glGetUniformLocation(shader, "pan_x"), pan[0])
-        glUniform1f(glGetUniformLocation(shader, "pan_y"), pan[1])
+        transform = glm.mat4(1)  # Identity matrix
+        transform = glm.translate(transform, glm.vec3(pan[0], pan[1], 0.0))
+        transform = glm.scale(transform, glm.vec3(zoom, zoom, zoom))
+        transform = glm.rotate(transform, rotation_angle[0], glm.vec3(1.0, 0.0, 0.0))
+        transform = glm.rotate(transform, rotation_angle[1], glm.vec3(0.0, 1.0, 0.0))
+
+        glUniformMatrix4fv(glGetUniformLocation(shader, "transform"), 1, GL_FALSE, glm.value_ptr(transform))
 
         glBindVertexArray(vao)
         glDrawArrays(GL_TRIANGLES, 0, 3)
