@@ -4,51 +4,6 @@ import glfw
 import glm
 import numpy as np
 
-vertex_shader = """
-#version 410
-layout (location = 0) in vec3 aPos;
-uniform mat4 transform;
-void main()
-{
-    gl_Position = transform * vec4(aPos.x, aPos.y, aPos.z, 1.0);
-}
-"""
-
-geometry_shader = """
-#version 410
-layout (points) in;
-layout (triangle_strip, max_vertices = 4) out;
-uniform float size;
-void main() {
-    vec4 pos = gl_in[0].gl_Position;
-    gl_Position = pos + vec4(-size, -size, 0.0, 0.0);
-    EmitVertex();
-    gl_Position = pos + vec4( size, -size, 0.0, 0.0);
-    EmitVertex();
-    gl_Position = pos + vec4(-size,  size, 0.0, 0.0);
-    EmitVertex();
-    gl_Position = pos + vec4( size,  size, 0.0, 0.0);
-    EmitVertex();
-    EndPrimitive();
-}
-"""
-
-fragment_shader = """
-#version 410 core
-
-out vec4 fragColor;
-
-uniform float transparency;
-uniform float luminance;
-uniform vec3 splatColor;
-
-void main()
-{
-    vec3 finalColor = splatColor * luminance;
-    float finalAlpha = transparency;
-    fragColor = vec4(finalColor, finalAlpha);
-}
-"""
 
 zoom = 1.0
 pan = [0.0, 0.0]
@@ -128,10 +83,19 @@ def main():
     glfw.set_cursor_pos_callback(window, cursor_position_callback)
     glfw.set_mouse_button_callback(window, mouse_button_callback)
 
+    with open('shaders\\base.vert', 'r') as file:
+        vertex_shader_source = file.read()
+
+    with open('shaders\circle.geom', 'r') as file:
+        geometry_shader_source = file.read()
+
+    with open('shaders\\base.frag', 'r') as file:
+        fragment_shader_source = file.read()
+
     shader = compileProgram(
-        compileShader(vertex_shader, GL_VERTEX_SHADER),
-        compileShader(geometry_shader, GL_GEOMETRY_SHADER),
-        compileShader(fragment_shader, GL_FRAGMENT_SHADER)
+        compileShader(vertex_shader_source, GL_VERTEX_SHADER),
+        compileShader(geometry_shader_source, GL_GEOMETRY_SHADER),
+        compileShader(fragment_shader_source, GL_FRAGMENT_SHADER)
     )
 
     vertices = read_obj('assets\go-gopher.obj') # You might have to tweak the slash as I am on Windows rn
@@ -141,11 +105,11 @@ def main():
     glUseProgram(shader)
 
     size_location = glGetUniformLocation(shader, "size")
-    glUniform1f(size_location, 0.005)  # Adjust size value as needed
+    glUniform1f(size_location, 0.01)  # Adjust size value as needed
 
-    splat_color = np.array([0.2, 0.0, 0.0], dtype=np.float32)  # Example splat color
+    splat_color = np.array([0.41, 0.87, 0.98], dtype=np.float32)  # Example splat color
     transparency = 0.5  # Example transparency value
-    luminance = 0.8  # Example luminance value
+    luminance = 1.0 # Example luminance value
 
     glUniform3fv(glGetUniformLocation(shader, "splatColor"), 1, splat_color)
     glUniform1f(glGetUniformLocation(shader, "transparency"), transparency)
@@ -157,7 +121,7 @@ def main():
     # Loop until the user closes the window
     while not glfw.window_should_close(window):
         # Render
-        glClearColor(0.2, 0.3, 0.3, 1.0)
+        glClearColor(0.3, 0.3, 0.3, 1.0)
         glClear(GL_COLOR_BUFFER_BIT)
 
         transform = glm.mat4(1)  # Identity matrix
