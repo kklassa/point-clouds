@@ -41,7 +41,11 @@ def mouse_button_callback(window, button, action, mods):
     elif button == glfw.MOUSE_BUTTON_RIGHT:
         IS_RIGHT_MOUSE_BUTTON_PRESSED = action == glfw.PRESS
 
-def window_resize(window, width, height):
+def key_callback(window, key, scancode, action, mods):
+    if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
+        glfw.set_window_should_close(window, True)
+
+def window_resize_callback(window, width, height):
     glViewport(0, 0, width, height)
 
 def main():
@@ -62,7 +66,8 @@ def main():
     glfw.set_scroll_callback(window, scroll_callback)
     glfw.set_cursor_pos_callback(window, cursor_position_callback)
     glfw.set_mouse_button_callback(window, mouse_button_callback)
-    glfw.set_window_size_callback(window, window_resize)
+    glfw.set_key_callback(window, key_callback)
+    glfw.set_window_size_callback(window, window_resize_callback)
 
     with open('shaders\\base.vert', 'r') as file:
         vertex_shader_source = file.read()
