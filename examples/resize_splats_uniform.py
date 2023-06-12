@@ -79,11 +79,7 @@ def calculate_distances(vertices: list) -> list:
 
     return distances
 
-def scale_distances(distances):
-    # define the new min and max
-    new_min = 1.0
-    new_max = 4.0
-
+def scale_distances_uniform(distances, new_min, new_max):
     # calculate the old min and max
     original_min = distances.min()
     original_max = distances.max()
@@ -100,7 +96,7 @@ def main():
         return
 
     # Create a windowed mode window and its OpenGL context
-    window = glfw.create_window(800, 800, "Hello World", None, None)
+    window = glfw.create_window(800, 800, "Uniform Scaled Splats", None, None)
     if not window:
         glfw.terminate()
         return
@@ -124,7 +120,7 @@ def main():
 
     distances = calculate_distances(points)
 
-    sizes = scale_distances(distances)
+    sizes = scale_distances_uniform(distances, 0.5, 2.0)
 
     vao = create_vao(points, sizes)
 

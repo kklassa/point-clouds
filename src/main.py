@@ -72,11 +72,9 @@ def create_vao(vertices):
 
 
 def main(objects, window_width, window_height, window_title, dynamic_splat_sizing):
-    # Initialize the library
     if not glfw.init():
         return
 
-    # Create a windowed mode window and its OpenGL context
     window = glfw.create_window(window_width, window_height, window_title, None, None)
     if not window:
         glfw.terminate()
@@ -104,7 +102,7 @@ def main(objects, window_width, window_height, window_title, dynamic_splat_sizin
             obj.vao = create_vao(obj.vertices)
 
         size_location = glGetUniformLocation(shader, "size")
-        glUniform1f(size_location, 0.01)  # Adjust size value as needed
+        glUniform1f(size_location, 0.01)
 
         glUniform3fv(glGetUniformLocation(shader, "splatColor"), 1, obj.splat_color)
         glUniform1f(glGetUniformLocation(shader, "transparency"), obj.transparency)
@@ -113,9 +111,8 @@ def main(objects, window_width, window_height, window_title, dynamic_splat_sizin
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-    # Loop until the user closes the window
     while not glfw.window_should_close(window):
-        # Render
+
         glClearColor(0.2, 0.3, 0.3, 1.0)
         glClear(GL_COLOR_BUFFER_BIT)
 
@@ -133,21 +130,21 @@ def main(objects, window_width, window_height, window_title, dynamic_splat_sizin
             glBindVertexArray(obj.vao)
             glDrawArrays(GL_POINTS, 0, len(obj.vertices) // 3)
 
-        # Swap front and back buffers
         glfw.swap_buffers(window)
 
-        # Poll for and process events
         glfw.poll_events()
 
     glfw.terminate()
 
 
 if __name__ == "__main__":
-    splat_color = np.array([0.41, 0.87, 0.98], dtype=np.float32)  # Example splat color
-    transparency = 0.5  # Example transparency value
-    luminance = 1.0 # Example luminance value
 
-    object1 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([-0.5, 0.0, 0.0]), splat_color=splat_color, luminance=luminance, transparency=transparency)
-    object2 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([0.5, 0.0, 0.0]), splat_color=splat_color, luminance=luminance, transparency=transparency)
-    objects = [object1, object2]
-    main(objects=objects, window_width=800, window_height=600, window_title="Hello world", dynamic_splat_sizing=True)
+    transparency = 0.5  
+    luminance = 1.0
+
+    splat_color_1 = np.array([0.41, 0.87, 0.98], dtype=np.float32)
+    splat_color_2 = np.array([0.67, 0.32, 0.84], dtype=np.float32)
+    object1 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([-0.5, 0.0, 0.0]), splat_color=splat_color_1, luminance=luminance, transparency=transparency)
+    #object2 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([0.5, 0.0, 0.0]), splat_color=splat_color_2, luminance=luminance, transparency=transparency)
+    objects = [object1]#, object2]
+    main(objects=objects, window_width=1200, window_height=1200, window_title="Point Clouds", dynamic_splat_sizing=True)
