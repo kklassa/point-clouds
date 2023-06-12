@@ -3,7 +3,6 @@ from OpenGL.GL.shaders import compileProgram, compileShader
 import glfw
 import numpy as np
 
-
 vertex_shader = """
 #version 410
 layout (location = 0) in vec3 aPos;
@@ -19,6 +18,20 @@ out vec4 FragColor;
 void main()
 {
     FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+}
+"""
+
+geometry_shader = """
+#version 410 core
+layout (lines) in;
+layout (line_strip, max_vertices = 2) out;
+
+void main() {
+    for (int i = 0; i < gl_in.length(); i++) {
+        gl_Position = gl_in[i].gl_Position;
+        EmitVertex();
+    }
+    EndPrimitive();
 }
 """
 
@@ -49,12 +62,9 @@ def read_obj(filename):
     return vertices
 
 def main():
-
-    # Initialize the library
     if not glfw.init():
         return
 
-    # Create a windowed mode window and its OpenGL context
     window = glfw.create_window(800, 600, "Hello World", None, None)
     if not window:
         glfw.terminate()
@@ -64,30 +74,27 @@ def main():
 
     shader = compileProgram(
         compileShader(vertex_shader, GL_VERTEX_SHADER),
+        compileShader(geometry_shader, GL_GEOMETRY_SHADER),
         compileShader(fragment_shader, GL_FRAGMENT_SHADER)
     )
 
-    vertices = read_obj('assets\go-gopher.obj') # You might have to tweak the slash as I am on Windows rn
-
+    vertices = read_obj('assets\go-gopher.obj')
     vao = create_vao(vertices)
 
     glUseProgram(shader)
 
     glPointSize(4)
 
-    # Loop until the user closes the window
     while not glfw.window_should_close(window):
-        # Render
         glClearColor(0.2, 0.3, 0.3, 1.0)
         glClear(GL_COLOR_BUFFER_BIT)
 
         glBindVertexArray(vao)
-        glDrawArrays(GL_POINTS, 0, len(vertices)//3)
+        # glDrawArrays(GL_LINES_ADJACENCY, 0, len(vertices))
+        glDrawArrays(GL_LINES, 0, len(vertices))
 
-        # Swap front and back buffers
         glfw.swap_buffers(window)
 
-        # Poll for and process events
         glfw.poll_events()
 
     glfw.terminate()
