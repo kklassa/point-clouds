@@ -1,6 +1,7 @@
 from OpenGL.GL import *
 from OpenGL.GL.shaders import compileProgram, compileShader
 import numpy as np
+import glm
 
 
 class Object:
@@ -15,6 +16,7 @@ class Object:
 
         self.transform_m = self.create_transform_m()
         self.vertices = self.read_obj()
+        self.vao = None
 
 
     def set_shader(self):
@@ -45,7 +47,6 @@ class Object:
     
     
     def create_transform_m(self):
-        transform = np.identity(4, dtype=np.float32)
-        transform[3, :3] = self.position_m
-
+        transform = glm.mat4(1)
+        transform = glm.translate(transform, glm.vec3(self.position_m[0], self.position_m[1], self.position_m[2]))
         return transform

@@ -1,9 +1,56 @@
 from OpenGL.GL import *
 import glfw
+import glm
 import numpy as np
 
 from globals import vertex_shader, fragment_shader1, fragment_shader2
 from object import Object
+
+
+ZOOM = 1.0
+PAN = [0.0, 0.0]
+LAST_MOUSE_PAN = [0, 0]
+IS_MIDDLE_MOUSE_BUTTON_PRESSED = False
+IS_RIGHT_MOUSE_BUTTON_PRESSED = False
+ROTATION_ANGLE = [0.0, 0.0]  # in radians
+
+
+def scroll_callback(window, x_offset, y_offset):
+    global ZOOM
+    ZOOM += y_offset * 0.2
+    ZOOM = max(0.1, ZOOM)
+
+
+def cursor_position_callback(window, xpos, ypos):
+    global LAST_MOUSE_PAN
+    global PAN
+    dx = xpos - LAST_MOUSE_PAN[0]
+    dy = ypos - LAST_MOUSE_PAN[1]
+    if IS_MIDDLE_MOUSE_BUTTON_PRESSED:
+        PAN[0] += dx * 0.0025
+        PAN[1] -= dy * 0.0025  # y is inverted
+    elif IS_RIGHT_MOUSE_BUTTON_PRESSED:
+        ROTATION_ANGLE[0] += dy * 0.01
+        ROTATION_ANGLE[1] += dx * 0.01
+    LAST_MOUSE_PAN = [xpos, ypos]
+
+
+def mouse_button_callback(window, button, action, mods):
+    global IS_MIDDLE_MOUSE_BUTTON_PRESSED
+    global IS_RIGHT_MOUSE_BUTTON_PRESSED
+    if button == glfw.MOUSE_BUTTON_MIDDLE:
+        IS_MIDDLE_MOUSE_BUTTON_PRESSED = action == glfw.PRESS
+    elif button == glfw.MOUSE_BUTTON_RIGHT:
+        IS_RIGHT_MOUSE_BUTTON_PRESSED = action == glfw.PRESS
+
+
+def key_callback(window, key, scancode, action, mods):
+    if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
+        glfw.set_window_should_close(window, True)
+
+
+def window_resize_callback(window, width, height):
+    glViewport(0, 0, width, height)
 
 
 def create_vao(vertices):
@@ -22,7 +69,7 @@ def create_vao(vertices):
     return vao
 
 
-def main(translation_speed, rotation_speed, objects, window_width, window_height, window_title):
+def main(objects, window_width, window_height, window_title):
     # Initialize the library
     if not glfw.init():
         return
@@ -34,8 +81,17 @@ def main(translation_speed, rotation_speed, objects, window_width, window_height
         return
 
     glfw.make_context_current(window)
+    glfw.set_scroll_callback(window, scroll_callback)
+    glfw.set_cursor_pos_callback(window, cursor_position_callback)
+    glfw.set_mouse_button_callback(window, mouse_button_callback)
+    glfw.set_key_callback(window, key_callback)
+    glfw.set_window_size_callback(window, window_resize_callback)
 
     glPointSize(4)
+
+    for obj in objects:
+        obj.set_shader()
+        obj.vao = create_vao(vertices=obj.vertices)
 
     # Loop until the user closes the window
     while not glfw.window_should_close(window):
@@ -44,65 +100,17 @@ def main(translation_speed, rotation_speed, objects, window_width, window_height
         glClear(GL_COLOR_BUFFER_BIT)
 
         for obj in objects:
-            obj.set_shader()
             glUseProgram(obj.shader)
-            vao = create_vao(vertices=obj.vertices)
-            glBindVertexArray(vao)
 
-            rotate_x = 0.0
-            rotate_y = 0.0
+            glBindVertexArray(obj.vao)
 
-            if glfw.get_key(window, glfw.KEY_UP) == glfw.PRESS:
-                if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
-                    rotate_x += rotation_speed  # Rotate up
-                else:
-                    obj.position_m[1] += translation_speed  # Move up
+            transform = obj.transform_m
+            transform = glm.translate(transform, glm.vec3(PAN[0], PAN[1], 0.0))
+            transform = glm.scale(transform, glm.vec3(ZOOM, ZOOM, ZOOM))
+            transform = glm.rotate(transform, ROTATION_ANGLE[0], glm.vec3(1.0, 0.0, 0.0))
+            transform = glm.rotate(transform, ROTATION_ANGLE[1], glm.vec3(0.0, 1.0, 0.0))
 
-            if glfw.get_key(window, glfw.KEY_DOWN) == glfw.PRESS:
-                if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
-                    rotate_x -= rotation_speed  # Rotate down
-                else:
-                    obj.position_m[1] -= translation_speed  # Move down
-
-            if glfw.get_key(window, glfw.KEY_LEFT) == glfw.PRESS:
-                if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
-                    rotate_y += rotation_speed  # Rotate left
-                else:
-                    obj.position_m[0] -= translation_speed  # Move left
-
-            if glfw.get_key(window, glfw.KEY_RIGHT) == glfw.PRESS:
-                if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
-                    rotate_y -= rotation_speed  # Rotate right
-                else:
-                    obj.position_m[0] += translation_speed  # Move right
-
-            obj.rotation_m[0] = rotate_x
-            obj.rotation_m[1] = rotate_y
-
-            # Apply rotation
-            rotation_matrix_x = np.array([
-                [1, 0, 0, 0],
-                [0, np.cos(np.radians(rotate_x)), -np.sin(np.radians(rotate_x)), 0],
-                [0, np.sin(np.radians(rotate_x)), np.cos(np.radians(rotate_x)), 0],
-                [0, 0, 0, 1]
-            ], dtype=np.float32)
-
-            rotation_matrix_y = np.array([
-                [np.cos(np.radians(rotate_y)), 0, np.sin(np.radians(rotate_y)), 0],
-                [0, 1, 0, 0],
-                [-np.sin(np.radians(rotate_y)), 0, np.cos(np.radians(rotate_y)), 0],
-                [0, 0, 0, 1]
-            ], dtype=np.float32)
-
-            # Apply transformations
-            transform = np.matmul(rotation_matrix_x, obj.transform_m)
-            transform = np.matmul(rotation_matrix_y, transform)
-            transform[3, :3] = obj.position_m
-
-            obj.transform_m = transform
-
-            transformLoc = glGetUniformLocation(obj.shader, "transform")
-            glUniformMatrix4fv(transformLoc, 1, GL_FALSE, transform)
+            glUniformMatrix4fv(glGetUniformLocation(obj.shader, "transform"), 1, GL_FALSE, glm.value_ptr(transform))
 
             glDrawArrays(GL_POINTS, 0, len(obj.vertices) // 3)
 
@@ -114,8 +122,9 @@ def main(translation_speed, rotation_speed, objects, window_width, window_height
 
     glfw.terminate()
 
+
 if __name__ == "__main__":
-    object1 = Object(points_path='assets/go-gopher.obj', vertex_shader=vertex_shader, fragment_shader=fragment_shader1)
-    object2 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([1.0, 1.0, 0.0]), vertex_shader=vertex_shader, fragment_shader=fragment_shader2)
+    object1 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([-0.5, 0.0, 0.0]), vertex_shader=vertex_shader, fragment_shader=fragment_shader1)
+    object2 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([0.5, 0.0, 0.0]), vertex_shader=vertex_shader, fragment_shader=fragment_shader2)
     objects = [object1, object2]
-    main(translation_speed=0.05, rotation_speed=1.0, objects=objects, window_width=800, window_height=600, window_title="Hello world")
+    main(objects=objects, window_width=800, window_height=600, window_title="Hello world")
