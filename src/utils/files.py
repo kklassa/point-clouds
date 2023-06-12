@@ -1,4 +1,4 @@
-def read_obj(filename):
+def read_obj(filename: str) -> list:
     vertices = []
 
     with open(filename, 'r') as file:
@@ -8,3 +8,7 @@ def read_obj(filename):
                 vertices.append(list(map(float, parts[1:])))
 
     return vertices
+
+def read_shader_file(filename: str) -> str:
+    with open(filename, 'r') as file:
+        return file.read()

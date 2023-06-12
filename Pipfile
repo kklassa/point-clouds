@@ -8,6 +8,7 @@ glfw = "*"
 numpy = "*"
 pyopengl = "*"
 pyglm = "*"
+scipy = "*"
 
 [dev-packages]
 

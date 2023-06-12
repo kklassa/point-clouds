@@ -4,8 +4,9 @@ import glfw
 import glm
 import numpy as np
 
-from utils.files import read_obj
-from utils.vao import create_vao
+from utils.files import read_obj, read_shader_file
+from utils.vao import create_vao, create_vao_sized
+from utils.distance import calculate_distances, scale_distances, scale_distances_log
 
 
 ZOOM = 1.0
@@ -14,6 +15,7 @@ LAST_MOUSE_PAN = [0, 0]
 IS_MIDDLE_MOUSE_BUTTON_PRESSED = False
 IS_RIGHT_MOUSE_BUTTON_PRESSED = False
 ROTATION_ANGLE = [0.0, 0.0]  # in radians
+DYNAMIC_SPLAT_SIZING = False
 
 def scroll_callback(window, x_offset, y_offset):
     global ZOOM
@@ -69,14 +71,13 @@ def main():
     glfw.set_key_callback(window, key_callback)
     glfw.set_window_size_callback(window, window_resize_callback)
 
-    with open('shaders\\base.vert', 'r') as file:
-        vertex_shader_source = file.read()
-
-    with open('shaders\circle.geom', 'r') as file:
-        geometry_shader_source = file.read()
-
-    with open('shaders\\base.frag', 'r') as file:
-        fragment_shader_source = file.read()
+    if DYNAMIC_SPLAT_SIZING:
+        vertex_shader_source = read_shader_file('shaders\dynamic_size.vert')
+        geometry_shader_source = read_shader_file('shaders\dynamic_size_circle.geom')
+    else:
+        vertex_shader_source = read_shader_file('shaders\\base.vert')
+        geometry_shader_source = read_shader_file('shaders\circle.geom')
+    fragment_shader_source = read_shader_file('shaders\\base.frag')
 
     shader = compileProgram(
         compileShader(vertex_shader_source, GL_VERTEX_SHADER),
@@ -86,7 +87,12 @@ def main():
 
     vertices = read_obj('assets\go-gopher.obj') # You might have to tweak the slash as I am on Windows rn
 
-    vao = create_vao(vertices)
+    if DYNAMIC_SPLAT_SIZING:
+        distances = calculate_distances(vertices)
+        sizes = scale_distances_log(distances, 0.0005, 5.0)
+        vao = create_vao_sized(vertices, sizes)
+    else:
+        vao = create_vao(vertices)
 
     glUseProgram(shader)
 
