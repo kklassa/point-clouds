@@ -1,36 +1,40 @@
 from OpenGL.GL import *
 from OpenGL.GL.shaders import compileProgram, compileShader
 import numpy as np
+from utils.files import read_shader_file
 import glm
 
 
 class Object:
-    def __init__(self, points_path, position_matrix=None, rotation_matrix=None, vertex_shader=None, fragment_shader=None, geometry_shader=None):
+    def __init__(self, points_path, position_matrix=None, rotation_matrix=None, luminance=0, transparency=0, splat_color=None):
         self.points_path = points_path
-        self.vertex_shader = vertex_shader
-        self.fragment_shader = fragment_shader
-        self.geometry_shader = geometry_shader
 
         self.position_m = position_matrix if position_matrix is not None else np.array([0.0, 0.0, 0.0])
         self.rotation_m = rotation_matrix if rotation_matrix is not None else np.array([0.0, 0.0])
+
+        self.luminance = luminance
+        self.transparency = transparency
+        self.splat_color = splat_color
 
         self.transform_m = self.create_transform_m()
         self.vertices = self.read_obj()
         self.vao = None
 
 
-    def set_shader(self):
-        if self.geometry_shader:
-            shader = compileProgram(
-            compileShader(self.vertex_shader, GL_VERTEX_SHADER),
-            compileShader(self.fragment_shader, GL_FRAGMENT_SHADER),
-            compileShader(self.geometry_shader, GL_GEOMETRY_SHADER)
-        )
+    def set_shader(self, dynamic_splat_sizing=False):
+        if dynamic_splat_sizing:
+            vertex_shader = read_shader_file('shaders/dynamic_size.vert')
+            geometry_shader = read_shader_file('shaders/dynamic_size_circle.geom')
         else:
-            shader = compileProgram(
-                compileShader(self.vertex_shader, GL_VERTEX_SHADER),
-                compileShader(self.fragment_shader, GL_FRAGMENT_SHADER)
-            )
+            vertex_shader = read_shader_file('shaders/base.vert')
+            geometry_shader = read_shader_file('shaders/circle.geom')
+        fragment_shader = read_shader_file('shaders/base.frag')
+
+        shader = compileProgram(
+            compileShader(vertex_shader, GL_VERTEX_SHADER),
+            compileShader(fragment_shader, GL_FRAGMENT_SHADER),
+            compileShader(geometry_shader, GL_GEOMETRY_SHADER)
+        )
         self.shader = shader
 
 

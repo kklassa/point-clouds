@@ -3,8 +3,10 @@ import glfw
 import glm
 import numpy as np
 
-from globals import vertex_shader, fragment_shader1, fragment_shader2
 from object import Object
+
+from utils.vao import create_vao, create_vao_sized
+from utils.distance import calculate_distances, scale_distances, scale_distances_log
 
 
 ZOOM = 1.0
@@ -69,7 +71,7 @@ def create_vao(vertices):
     return vao
 
 
-def main(objects, window_width, window_height, window_title):
+def main(objects, window_width, window_height, window_title, dynamic_splat_sizing):
     # Initialize the library
     if not glfw.init():
         return
@@ -90,8 +92,26 @@ def main(objects, window_width, window_height, window_title):
     glPointSize(4)
 
     for obj in objects:
-        obj.set_shader()
-        obj.vao = create_vao(vertices=obj.vertices)
+        obj.set_shader(dynamic_splat_sizing=dynamic_splat_sizing)
+        shader = obj.shader
+        glUseProgram(obj.shader)
+
+        if dynamic_splat_sizing:
+            distances = calculate_distances(obj.vertices)
+            sizes = scale_distances_log(distances, 0.0005, 5.0)
+            obj.vao = create_vao_sized(obj.vertices, sizes)
+        else:
+            obj.vao = create_vao(obj.vertices)
+
+        size_location = glGetUniformLocation(shader, "size")
+        glUniform1f(size_location, 0.01)  # Adjust size value as needed
+
+        glUniform3fv(glGetUniformLocation(shader, "splatColor"), 1, obj.splat_color)
+        glUniform1f(glGetUniformLocation(shader, "transparency"), obj.transparency)
+        glUniform1f(glGetUniformLocation(shader, "luminance"), obj.luminance)
+
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     # Loop until the user closes the window
     while not glfw.window_should_close(window):
@@ -102,8 +122,6 @@ def main(objects, window_width, window_height, window_title):
         for obj in objects:
             glUseProgram(obj.shader)
 
-            glBindVertexArray(obj.vao)
-
             transform = obj.transform_m
             transform = glm.translate(transform, glm.vec3(PAN[0], PAN[1], 0.0))
             transform = glm.scale(transform, glm.vec3(ZOOM, ZOOM, ZOOM))
@@ -112,6 +130,7 @@ def main(objects, window_width, window_height, window_title):
 
             glUniformMatrix4fv(glGetUniformLocation(obj.shader, "transform"), 1, GL_FALSE, glm.value_ptr(transform))
 
+            glBindVertexArray(obj.vao)
             glDrawArrays(GL_POINTS, 0, len(obj.vertices) // 3)
 
         # Swap front and back buffers
@@ -124,7 +143,11 @@ def main(objects, window_width, window_height, window_title):
 
 
 if __name__ == "__main__":
-    object1 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([-0.5, 0.0, 0.0]), vertex_shader=vertex_shader, fragment_shader=fragment_shader1)
-    object2 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([0.5, 0.0, 0.0]), vertex_shader=vertex_shader, fragment_shader=fragment_shader2)
+    splat_color = np.array([0.41, 0.87, 0.98], dtype=np.float32)  # Example splat color
+    transparency = 0.5  # Example transparency value
+    luminance = 1.0 # Example luminance value
+
+    object1 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([-0.5, 0.0, 0.0]), splat_color=splat_color, luminance=luminance, transparency=transparency)
+    object2 = Object(points_path='assets/go-gopher.obj', position_matrix=np.array([0.5, 0.0, 0.0]), splat_color=splat_color, luminance=luminance, transparency=transparency)
     objects = [object1, object2]
-    main(objects=objects, window_width=800, window_height=600, window_title="Hello world")
+    main(objects=objects, window_width=800, window_height=600, window_title="Hello world", dynamic_splat_sizing=True)
