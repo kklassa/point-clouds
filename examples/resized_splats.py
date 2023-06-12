@@ -2,6 +2,7 @@ from OpenGL.GL import *
 from OpenGL.GL.shaders import compileProgram, compileShader
 import glfw
 import numpy as np
+from scipy.spatial import distance
 
 vertex_shader = """
 #version 410
@@ -20,10 +21,10 @@ geometry_shader = """
 layout (points) in;
 layout (triangle_strip, max_vertices = 4) out;
 in float Size[];
-uniform float size;
+uniform float baseSize;
 void main() {
     vec4 pos = gl_in[0].gl_Position;
-    float size = size * Size[0];
+    float size = baseSize * Size[0];
     gl_Position = pos + vec4(-size, -size, 0.0, 0.0);
     EmitVertex();
     gl_Position = pos + vec4( size, -size, 0.0, 0.0);
@@ -66,6 +67,32 @@ def create_vao(points, sizes):
 
     return vao
 
+def calculate_distances(vertices: list) -> list:
+    # reshape the array into a 2D array where each row represents a point
+    points = np.array(vertices).reshape(-1, 3)
+
+    # calculate the pairwise Euclidean distance between all points
+    distance_matrix = distance.cdist(points, points, 'euclidean')
+
+    # sort each row and take the second smallest element (i.e. the smallest non-zero distance)
+    distances = np.sort(distance_matrix, axis=1)[:, 1]
+
+    return distances
+
+def scale_distances(distances):
+    # define the new min and max
+    new_min = 1.0
+    new_max = 4.0
+
+    # calculate the old min and max
+    original_min = distances.min()
+    original_max = distances.max()
+
+    # scale the distances array
+    scales = (new_max - new_min) * (distances - original_min) / (original_max - original_min) + new_min
+
+    return scales
+
 def main():
 
     # Initialize the library
@@ -88,17 +115,22 @@ def main():
 
     points = [
         -0.5, -0.5, 0.0,
-         0.5, -0.5, 0.0,
-         0.0,  0.5, 0.0
+        0.5, -0.5, 0.0,
+        0.0,  0.5, 0.0,
+        0.1, 0.2, 0.3,
+        0.4, 0.5, 0.6,
+        -0.2, -0.3, -0.4
     ]
 
-    sizes = [0.25, 0.5, 0.75]
+    distances = calculate_distances(points)
+
+    sizes = scale_distances(distances)
 
     vao = create_vao(points, sizes)
 
     glUseProgram(shader)
 
-    size_location = glGetUniformLocation(shader, "size")
+    size_location = glGetUniformLocation(shader, "baseSize")
     glUniform1f(size_location, 0.05)  # Adjust size value as needed
 
     # Loop until the user closes the window
@@ -108,7 +140,7 @@ def main():
         glClear(GL_COLOR_BUFFER_BIT)
 
         glBindVertexArray(vao)
-        glDrawArrays(GL_POINTS, 0, 3)
+        glDrawArrays(GL_POINTS, 0, len(points)//3)
 
         # Swap front and back buffers
         glfw.swap_buffers(window)
