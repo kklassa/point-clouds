@@ -76,18 +76,20 @@ def main():
             rotate_y -= rotation_speed
 
         view_transform = Transforms.rotate(np.radians(rotate_x), np.radians(rotate_y), np.radians(0))
-        s_obj2.transform(view_transform)
+
+        parent_obj = s_obj1
+        parent_obj.transform(view_transform)
 
         s_obj1.draw(shader1, 5)
         s_obj2.draw(shader2, 3)
         s_obj3.draw(shader1, 3)
 
-        s_obj2.transform(np.linalg.inv(view_transform))
+        parent_obj.transform(np.linalg.inv(view_transform))
 
         glfw.swap_buffers(window)
         glfw.poll_events()
 
-        
+
     glfw.terminate()
 
 if __name__ == '__main__':
