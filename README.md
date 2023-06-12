@@ -7,7 +7,7 @@
 * `src` - the actuall source code of the project
 * `shaders` - place where the shader source files live
 
-## Getting started 
+## Getting started
 
 To install the required dependencies, you are adivised to use either Python `venv` module and `requirements.txt` or alternatively use `pipenv`.
 
@@ -30,8 +30,8 @@ python -m pip install requirements.txt
 Run the project:
 
 ```
-python ./examples/window.py
-```
+
+```python ./examples/window.py
 
 ### pipenv
 
