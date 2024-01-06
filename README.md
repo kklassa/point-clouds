@@ -29,9 +29,7 @@ python -m pip install requirements.txt
 
 Run the project:
 
-```
-
-```python ./examples/window.py
+```python ./examples/window.py```
 
 ### pipenv
 
